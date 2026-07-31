@@ -1,50 +1,57 @@
+/**
+ * Serviço de armazenamento local usando AsyncStorage.
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Product } from '../types/Product';
 
-// Chave usada para identificar o cache de produtos no AsyncStorage.
-const PRODUCTS_CACHE_KEY = '@eletroshop:products_cache';
+const PRODUCTS_CACHE_KEY = '@eletroshop_products';
 
-// Salva a lista de produtos convertida em texto JSON no dispositivo.
-export const saveProductsLocally = async (products: Product[]): Promise<void> =>
-{
-    try
-    {
-        const serialized = JSON.stringify(products);
-        await AsyncStorage.setItem(PRODUCTS_CACHE_KEY, serialized);
-    }
-    catch (error)
-    {
-        throw new Error('Falha ao gravar no cache local');
-    }
-};
+// --- Tipos das funções ---
+export type SaveProductsLocally = (products: Product[]) => Promise<void>;
+export type LoadProductsLocally = () => Promise<Product[]>;
+export type ClearLocalProducts = () => Promise<void>;
 
-// Recupera os produtos salvos localmente. Se não existir nenhum dado, retorna lista vazia.
-export const loadProductsLocally = async (): Promise<Product[]> =>
-{
-    try
-    {
-        const serialized = await AsyncStorage.getItem(PRODUCTS_CACHE_KEY);
-        if (serialized === null)
-        {
-            return [];
-        }
-        return JSON.parse(serialized) as Product[];
-    }
-    catch (error)
-    {
-        throw new Error('Falha ao ler do cache local');
-    }
-};
+// --- Interface do serviço ---
+export interface ProductStorageService {
+  saveProductsLocally: SaveProductsLocally;
+  loadProductsLocally: LoadProductsLocally;
+  clearLocalProducts: ClearLocalProducts;
+}
 
-// Remove a chave de cache, apagando os produtos persistidos no dispositivo.
-export const clearLocalProducts = async (): Promise<void> =>
-{
-    try
-    {
-        await AsyncStorage.removeItem(PRODUCTS_CACHE_KEY);
+// --- Implementação ---
+export const productStorage: ProductStorageService = {
+  // Salva a lista convertendo para JSON
+  saveProductsLocally: async (products: Product[]): Promise<void> => {
+    try {
+      const json = JSON.stringify(products);
+      await AsyncStorage.setItem(PRODUCTS_CACHE_KEY, json);
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      throw error;
     }
-    catch (error)
-    {
-        throw new Error('Falha ao limpar o cache local');
+  },
+
+  // Carrega os dados, retorna array vazio se não houver
+  loadProductsLocally: async (): Promise<Product[]> => {
+    try {
+      const data = await AsyncStorage.getItem(PRODUCTS_CACHE_KEY);
+      if (data !== null) {
+        return JSON.parse(data) as Product[];
+      }
+      return [];
+    } catch (error) {
+      console.error('Erro ao carregar:', error);
+      return [];
     }
+  },
+
+  // Remove a chave do cache
+  clearLocalProducts: async (): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem(PRODUCTS_CACHE_KEY);
+    } catch (error) {
+      console.error('Erro ao limpar:', error);
+      throw error;
+    }
+  }
 };
